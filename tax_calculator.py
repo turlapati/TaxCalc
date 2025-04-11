@@ -649,30 +649,34 @@ class TaxCalculatorApp:
     def create_scenario_controls(self, scenario_id: int) -> ScenarioInputs:
         """Creates the Flet controls for a scenario."""
         controls_dict = {}
+        
         work_state_dd = ft.Dropdown(
             label="Work State", options=[ft.dropdown.Option(state) for state in self.states],
             hint_text="Select State",
-            dense=False, # REMOVED dense
-            content_padding=ft.padding.symmetric(vertical=10, horizontal=10), # Increased vertical padding
+            dense=False,
+            content_padding=ft.padding.symmetric(vertical=10, horizontal=10),
             expand=True # Allow dropdown to expand horizontally
         )
         controls_dict["work_state_dd"] = work_state_dd
+        
         residence_state_dd = ft.Dropdown(
             label="Living State", options=[ft.dropdown.Option(state) for state in self.states],
             hint_text="Select State",
-            dense=False, # REMOVED dense
-            content_padding=ft.padding.symmetric(vertical=10, horizontal=10), # Increased vertical padding
+            dense=False,
+            content_padding=ft.padding.symmetric(vertical=10, horizontal=10),
             expand=True # Allow dropdown to expand horizontally
         )
         controls_dict["residence_state_dd"] = residence_state_dd
+        
         work_city_dd = ft.Dropdown(
             label="Work City", options=[ft.dropdown.Option("N/A")], value="N/A", visible=False,
-            dense=False, # REMOVED dense
-            content_padding=ft.padding.symmetric(vertical=10, horizontal=10), # Increased vertical padding
+            dense=False,
+            content_padding=ft.padding.symmetric(vertical=10, horizontal=10),
             expand=True # Allow dropdown to expand horizontally
             # Note: Dropdown search (Issue #4) is not implemented here.
         )
         controls_dict["work_city_dd"] = work_city_dd
+        
         sdi_tf = ft.TextField(
             label="SDI/PFML (Auto)", value="$0.00", read_only=True, visible=False,
             text_align=ft.TextAlign.RIGHT, dense=True,
@@ -681,12 +685,28 @@ class TaxCalculatorApp:
         )
         controls_dict["sdi_tf"] = sdi_tf
         work_state_dd.on_change=lambda e: self.on_work_state_change(e, work_city_dd, sdi_tf)
-        controls_dict["health_tf"] = self._create_benefit_tf("Health Ins", "health")
-        controls_dict["dental_tf"] = self._create_benefit_tf("Dental/Vision", "dental")
-        controls_dict["hsa_tf"] = self._create_benefit_tf("HSA", "hsa")
-        controls_dict["fsa_tf"] = self._create_benefit_tf("FSA", "fsa")
-        controls_dict["retire_tf"] = self._create_benefit_tf("401k/403b", "retire")
-        controls_dict["other_tf"] = self._create_benefit_tf("Other PreTax", "other")
+
+        # Create benefit text fields
+        benefit_fields = [
+            ("Health Ins", "health"),
+            ("Dental/Vision", "dental"),
+            ("HSA", "hsa"),
+            ("FSA", "fsa"),
+            ("401k/403b", "retire"),
+            ("Other PreTax", "other")
+        ]
+        
+        for label, key in benefit_fields:
+            controls_dict[f"{key}_tf"] = ft.TextField(
+                label=label,
+                value="0",
+                prefix_text="$",
+                keyboard_type=ft.KeyboardType.NUMBER,
+                input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9.]*", replacement_string=""),
+                data=key,
+                dense=True,
+                expand=True
+            )
         return ScenarioInputs(controls=controls_dict)
 
     def create_scenario_container(self, scenario_id: int, scenario_data: ScenarioInputs) -> ft.Container:
@@ -985,12 +1005,18 @@ class TaxCalculatorApp:
         # --- Global Inputs ---
         self.desired_income_tf = ft.TextField(
             label="Desired Annual Post-Tax Income", value="500000", prefix_text="$",
-            keyboard_type=ft.KeyboardType.NUMBER, dense=True,
-            # select_all_on_focus=True, # REMOVED
-            input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9.]*", replacement_string="")
+            keyboard_type=ft.KeyboardType.NUMBER,
+            input_filter=ft.InputFilter(allow=True, regex_string=r"[0-9.]*", replacement_string=""),
+            dense=False,
+            content_padding=ft.padding.symmetric(vertical=10, horizontal=10),
+            expand=True,
+            autofocus=True  # First field gets autofocus
         )
         self.filing_status_dd = ft.Dropdown(
-            label="Filing Status", value="single", dense=True,
+            label="Filing Status", value="single",
+            content_padding=ft.padding.symmetric(vertical=10, horizontal=10),
+            dense=False,
+            expand=True,
             options=[
                 ft.dropdown.Option("single", "Single"),
                 ft.dropdown.Option("marriedJointly", "Married Filing Jointly"),
@@ -999,10 +1025,10 @@ class TaxCalculatorApp:
             ]
         )
         global_settings_container = ft.Container(
-            content=ft.ResponsiveRow([
-                 ft.Column([self.desired_income_tf], col={"xs": 12, "md": 6}),
-                 ft.Column([self.filing_status_dd], col={"xs": 12, "md": 6}),
-            ], spacing=5, run_spacing=5),
+            content=ft.Row([
+                ft.Column([self.desired_income_tf], expand=True), # Changed from ResponsiveRow to Row with expand
+                ft.Column([self.filing_status_dd], expand=True)
+            ], spacing=10),
             padding=10, border=ft.border.all(1, ft.Colors.OUTLINE_VARIANT),
             border_radius=6, margin=ft.margin.only(bottom=15)
         )
